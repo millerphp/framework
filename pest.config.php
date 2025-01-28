@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'colors' => true,
     'testdox' => true,
@@ -15,4 +17,4 @@ return [
         'summary' => true,
         'coverage' => true,
     ],
-]; 
+];

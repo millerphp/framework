@@ -48,7 +48,10 @@
     "require-dev": {
         "pestphp/pest": "^3.7",
         "pestphp/pest-plugin-arch": "^3.0",
-        "pestphp/pest-plugin-drift": "^3.0"
+        "pestphp/pest-plugin-drift": "^3.0",
+        "pestphp/pest-plugin-watch": "^3.0",
+        "laravel/pint": "^1.20",
+        "phpstan/phpstan": "^2.1"
         
     },
     "config": {
@@ -67,6 +70,10 @@
         ],
         "test:watch": [
             "pest --watch --colors=always --testdox"
-        ]
+        ],
+        "pint": "./vendor/bin/pint",
+        "pint:test": "./vendor/bin/pint --test",
+        "analyse": "phpstan analyse --level=max",
+        "analyse:test": "phpstan analyse --level=max --dry-run"
     }
 }

@@ -8,22 +8,20 @@ use Excalibur\Support\Facades\Facade;
 use Excalibur\Router\Router;
 
 /**
- * @method static \Excalibur\Router\Route get(string $uri, callable|string|array $handler)
- * @method static \Excalibur\Router\Route post(string $uri, callable|string|array $handler)
- * @method static \Excalibur\Router\Route put(string $uri, callable|string|array $handler)
- * @method static \Excalibur\Router\Route delete(string $uri, callable|string|array $handler)
- * @method static \Excalibur\Router\Route match(array $methods, string $uri, callable|string|array $handler)
+ * @method static \Excalibur\Router\Route get(string $uri, callable|string|array<string, mixed> $handler)
+ * @method static \Excalibur\Router\Route post(string $uri, callable|string|array<string, mixed> $handler)
+ * @method static \Excalibur\Router\Route put(string $uri, callable|string|array<string, mixed> $handler)
+ * @method static \Excalibur\Router\Route delete(string $uri, callable|string|array<string, mixed> $handler)
+ * @method static \Excalibur\Router\Route match(array<string> $methods, string $uri, callable|string|array<string, mixed> $handler)
  * @method static mixed dispatch(string $uri, string $method = 'GET')
- * @method static string url(string $name, array $parameters = [])
+ * @method static string url(string $name, array<string, mixed> $parameters = [])
  */
 class Route extends Facade
 {
     /**
-     * The current route group stack.
-     *
-     * @var array<string, mixed>
+     * @var array<int, array<string, mixed>>
      */
-    private static array $groupStack = [];
+    protected static array $groupStack = [];
 
     /**
      * Get the registered name of the component.
@@ -43,20 +41,13 @@ class Route extends Facade
 
     /**
      * Get the router instance
+     * @return \Excalibur\Router\Router
      */
-    public static function getRouter(): Router
+    public static function getRouter(): \Excalibur\Router\Router
     {
-        return static::resolveFacadeInstance('router');
-    }
-
-    /**
-     * Get the current route group.
-     *
-     * @return array<string, mixed>
-     */
-    public static function getCurrentGroup(): array
-    {
-        return end(static::$groupStack) ?: [];
+        $instance = static::resolveFacadeInstance('router');
+        assert($instance instanceof \Excalibur\Router\Router);
+        return $instance;
     }
 
     /**
@@ -76,4 +67,16 @@ class Route extends Facade
     {
         array_pop(static::$groupStack);
     }
-} 
+
+    /**
+     * Get the current route group.
+     *
+     * @return array<string, mixed>
+     */
+    public static function getCurrentGroup(): array
+    {
+        /** @var array<string, mixed>|false $current */
+        $current = end(static::$groupStack);
+        return $current === false ? [] : $current;
+    }
+}

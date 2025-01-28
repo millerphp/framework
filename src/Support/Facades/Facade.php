@@ -40,6 +40,8 @@ abstract class Facade
 
     /**
      * Handle dynamic, static calls to the object.
+     * @param string $method
+     * @param array<mixed, mixed> $args
      */
     public static function __callStatic(string $method, array $args): mixed
     {
@@ -55,4 +57,4 @@ abstract class Facade
     {
         static::$resolvedInstances = [];
     }
-} 
+}

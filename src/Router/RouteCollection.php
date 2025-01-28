@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Excalibur\Router;
 
-use Excalibur\Router\Exception\RouterException;
-
 class RouteCollection
 {
     /**
@@ -66,4 +64,4 @@ class RouteCollection
     {
         $this->namedRoutes[$name] = $route;
     }
-} 
+}

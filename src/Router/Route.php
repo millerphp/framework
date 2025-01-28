@@ -31,16 +31,22 @@ class Route
      */
     private array $parameters = [];
 
+    /**
+     * @var array<string, string>
+     */
     private array $wheres = [];
+
+    /**
+     * @var array<string, mixed>
+     */
     private array $defaults = [];
-    private bool $optional = false;
 
     /**
      * Create a new route instance
-     * 
-     * @param array|string $methods HTTP methods this route responds to
+     *
+     * @param array<string>|string $methods HTTP methods this route responds to
      * @param string $uri The URI pattern for this route
-     * @param callable|string|array $handler The route handler
+     * @param callable|string|array<string, mixed> $handler The route handler
      */
     public function __construct(
         array|string $methods,
@@ -52,42 +58,54 @@ class Route
 
     /**
      * Create a new GET route
+     * @param callable|string|array<string, mixed> $handler
      */
-    public static function get(string $uri, callable|string|array $handler): static
+    public static function get(string $uri, callable|string|array $handler): self
     {
-        return new static('GET', $uri, $handler);
+        /** @var array<string, mixed>|callable|string $handler */
+        return new self('GET', $uri, $handler);
     }
 
     /**
      * Create a new POST route
+     * @param callable|string|array<string, mixed> $handler
      */
-    public static function post(string $uri, callable|string|array $handler): static
+    public static function post(string $uri, callable|string|array $handler): self
     {
-        return new static('POST', $uri, $handler);
+        /** @var array<string, mixed>|callable|string $handler */
+        return new self('POST', $uri, $handler);
     }
 
     /**
      * Create a new PUT route
+     * @param callable|string|array<string, mixed> $handler
      */
-    public static function put(string $uri, callable|string|array $handler): static
+    public static function put(string $uri, callable|string|array $handler): self
     {
-        return new static('PUT', $uri, $handler);
+        /** @var array<string, mixed>|callable|string $handler */
+        return new self('PUT', $uri, $handler);
     }
 
     /**
      * Create a new DELETE route
+     * @param callable|string|array<string, mixed> $handler
      */
-    public static function delete(string $uri, callable|string|array $handler): static
+    public static function delete(string $uri, callable|string|array $handler): self
     {
-        return new static('DELETE', $uri, $handler);
+        /** @var array<string, mixed>|callable|string $handler */
+        return new self('DELETE', $uri, $handler);
     }
 
     /**
      * Create a route matching multiple methods
+     * @param array<string> $methods
+     * @param callable|string|array<string, mixed> $handler
      */
-    public static function match(array $methods, string $uri, callable|string $handler): static
+    public static function match(array $methods, string $uri, callable|string|array $handler): self
     {
-        return new static($methods[0], $uri, $handler);
+        /** @var array<string, mixed>|callable|string $handler */
+        /** @var array<string> $methods */
+        return new self($methods[0], $uri, $handler);
     }
 
     /**
@@ -96,15 +114,15 @@ class Route
     public function name(string $name): static
     {
         $this->name = $name;
-        
+
         // Get the router instance from the facade and register this route
         Facades\Route::getRouter()->getRouteCollection()->addNamedRoute($name, $this);
-        
+
         return $this;
     }
 
     /**
-     * Add middleware to the route
+     * @param array<string>|string $middleware
      */
     public function middleware(array|string $middleware): static
     {
@@ -134,9 +152,9 @@ class Route
 
     /**
      * Get the route's handler
-     * @return callable|string
+     * @return callable|string|array<string, mixed>
      */
-    public function getHandler()
+    public function getHandler(): callable|string|array
     {
         return $this->handler;
     }
@@ -178,16 +196,16 @@ class Route
     }
 
     /**
-     * Add a constraint for a parameter
+     * @param array<string, string>|string $name
      */
-    public function where(string|array $name, ?string $pattern = null): static
+    public function where(array|string $name, ?string $pattern = null): static
     {
         if (is_array($name)) {
             $this->wheres = array_merge($this->wheres, $name);
         } else {
-            $this->wheres[$name] = $pattern;
+            $this->wheres[$name] = $pattern ?? '[^/]+';
         }
-        
+
         return $this;
     }
 
@@ -201,7 +219,7 @@ class Route
     }
 
     /**
-     * Get parameter constraints
+     * @return array<string, string>
      */
     public function getWheres(): array
     {
@@ -209,7 +227,7 @@ class Route
     }
 
     /**
-     * Get parameter defaults
+     * @return array<string, mixed>
      */
     public function getDefaults(): array
     {
@@ -225,11 +243,11 @@ class Route
 
         // Get the pattern from the router's compiler
         $pattern = Facades\Route::getRouter()->getRouteCompiler()->compile($this->uri, $this->wheres);
-        
+
         if (preg_match($pattern, $uri, $matches)) {
             $this->parameters = array_filter(
-                $matches, 
-                fn($key) => is_string($key), 
+                $matches,
+                fn ($key) => is_string($key),
                 ARRAY_FILTER_USE_KEY
             );
             return true;
@@ -241,11 +259,11 @@ class Route
     protected function getRoutePattern(): string
     {
         $pattern = $this->uri;
-        
+
         // Replace named parameters with regex patterns
         $pattern = preg_replace_callback(
             '/\{([a-zA-Z_][a-zA-Z0-9_-]*)\??}/',
-            function($matches) {
+            function ($matches) {
                 $name = $matches[1];
                 $pattern = $this->wheres[$name] ?? '[^/]+';
                 $optional = str_ends_with($matches[0], '?}');
@@ -253,7 +271,7 @@ class Route
             },
             $pattern
         );
-        
+
         return '#^' . $pattern . '$#';
     }
 
@@ -290,17 +308,22 @@ class Route
         throw new RouterException('Invalid route handler');
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function generateUrl(array $parameters = []): string
     {
         $uri = $this->uri;
-        
+
         foreach ($parameters as $key => $value) {
-            $uri = preg_replace("/\{" . $key . "\??}/", (string)$value, $uri);
+            $pattern = "/\{" . preg_quote((string)$key, '/') . "\??}/";
+            $replacement = is_scalar($value) ? (string)$value : '';
+            $uri = (string)preg_replace($pattern, $replacement, $uri);
         }
-        
+
         // Remove any remaining optional parameters
-        $uri = preg_replace('/\{[^}]+\?}/', '', $uri);
-        
+        $uri = (string)preg_replace('/\{[^}]+\?}/', '', $uri);
+
         return $uri;
     }
-} 
+}

@@ -6,4 +6,4 @@ return [
     'colors' => true,
     'testdox' => true,
     'verbose' => true,
-]; 
+];

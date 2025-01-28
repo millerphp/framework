@@ -13,6 +13,11 @@ class Router implements RouterInterface
     private RouteCollection $routes;
     private RouteCompiler $compiler;
 
+    /**
+     * @var array<string, string>
+     */
+    private array $patterns = [];
+
     public function __construct()
     {
         $this->routes = new RouteCollection();
@@ -62,6 +67,8 @@ class Router implements RouterInterface
 
     /**
      * Add a route to the routing table
+     * @param array<string> $methods
+     * @param callable|string|array<string, mixed> $handler
      */
     protected function addRoute(array $methods, string $uri, callable|string|array $handler): Route
     {
@@ -76,28 +83,46 @@ class Router implements RouterInterface
      */
     protected function processUri(string $uri): string
     {
+        /** @var array<string, string|mixed> $group */
         $group = RouteFacade::getCurrentGroup();
-        $prefix = $group['prefix'] ?? '';
-        
-        return $prefix ? trim($prefix, '/') . '/' . trim($uri, '/') : trim($uri, '/');
+        $prefix = '';
+
+        if (isset($group['prefix'])) {
+            $prefixValue = $group['prefix'];
+            if (is_string($prefixValue)) {
+                $prefix = trim($prefixValue, '/');
+            }
+        }
+
+        $uri = trim($uri, '/');
+        return $prefix ? "$prefix/$uri" : $uri;
     }
 
     /**
      * Process the handler with current group stack
+     * @param callable|string|array<string, mixed> $handler
+     * @return callable|string|array<string, mixed>
      */
-    protected function processHandler(callable|string|array $handler): callable|string
+    protected function processHandler(callable|string|array $handler): callable|string|array
     {
+        if (!is_string($handler)) {
+            return $handler;
+        }
+
+        /** @var array<string, string|mixed> $group */
         $group = RouteFacade::getCurrentGroup();
-        
-        if (is_string($handler) && isset($group['namespace'])) {
-            return $group['namespace'] . '\\' . $handler;
+
+        if (!isset($group['namespace'])) {
+            return $handler;
         }
 
-        if (is_array($handler) && isset($group['namespace'])) {
-            return [$group['namespace'] . '\\' . $handler[0], $handler[1]];
+        $namespaceValue = $group['namespace'];
+        if (!is_string($namespaceValue)) {
+            return $handler;
         }
 
-        return $handler;
+        $namespace = trim($namespaceValue, '\\');
+        return $namespace . '\\' . ltrim($handler, '\\');
     }
 
     /**
@@ -105,33 +130,41 @@ class Router implements RouterInterface
      */
     protected function convertUriToRegex(string $uri): string
     {
-        $pattern = preg_replace_callback('/\{([a-zA-Z]+)(\?)?\}/', function($matches) {
+        $pattern = preg_replace_callback('/\{([a-zA-Z]+)(\?)?\}/', function (array $matches) {
             $param = $matches[1];
-            $optional = isset($matches[2]) && $matches[2] === '?';
-            
+            $optional = isset($matches[2]);
+
             if (str_contains($param, ':')) {
-                [$param, $pattern] = explode(':', $param);
-                $regex = $this->patterns[$pattern] ?? '[^/]+';
+                [$param, $patternName] = explode(':', $param);
+                $regex = isset($this->patterns[$patternName]) ? (string)$this->patterns[$patternName] : '[^/]+';
             } else {
                 $regex = '[^/]+';
             }
-            
+
             return $optional ? "(?:/(?P<$param>$regex))?" : "(?P<$param>$regex)";
         }, $uri);
-        
+
+        if ($pattern === null) {
+            return '#^/#';
+        }
+
         return '#^/' . str_replace('/', '\/', $pattern) . '$#';
     }
 
     /**
      * Extract named parameters from URI
+     * @param array<string, mixed> $matches
+     * @return array<string, mixed>
      */
     protected function extractNamedParameters(string $uri, array $matches): array
     {
         $parameters = [];
+        /** @var array{0: string, 1: array<int, string>} $parameterNames */
+        $parameterNames = [];
         preg_match_all('/\{([a-zA-Z]+)\}/', $uri, $parameterNames);
-        
-        foreach ($parameterNames[1] as $index => $name) {
-            $parameters[$name] = $matches[$index] ?? null;
+
+        foreach ($parameterNames[1] as $name) {
+            $parameters[$name] = $matches[$name] ?? null;
         }
 
         return $parameters;
@@ -139,7 +172,7 @@ class Router implements RouterInterface
 
     /**
      * Execute the route handler
-     * 
+     * @param array<string, mixed> $parameters
      * @throws RouterException
      */
     protected function executeHandler(callable|string $handler, array $parameters): mixed
@@ -148,24 +181,19 @@ class Router implements RouterInterface
             return $handler(...array_values($parameters));
         }
 
-        // Handle string class name for invokable controller
-        if (is_string($handler)) {
-            if (!class_exists($handler)) {
-                throw new RouterException("Controller class {$handler} not found");
-            }
-
-            $controller = new $handler();
-            
-            if (!is_callable($controller)) {
-                throw new RouterException(
-                    "Controller class {$handler} must be invokable (implement __invoke method)"
-                );
-            }
-
-            return $controller(...array_values($parameters));
+        if (!class_exists($handler)) {
+            throw new RouterException("Controller class {$handler} not found");
         }
 
-        throw new RouterException('Invalid route handler');
+        $controller = new $handler();
+
+        if (!is_callable($controller)) {
+            throw new RouterException(
+                "Controller class {$handler} must be invokable (implement __invoke method)"
+            );
+        }
+
+        return $controller(...array_values($parameters));
     }
 
     /**
@@ -178,15 +206,17 @@ class Router implements RouterInterface
 
     /**
      * Generate URL for named route
+     * @param array<string, mixed> $parameters
      */
     public function url(string $name, array $parameters = []): string
     {
         $route = $this->routes->getByName($name);
-        
+
         if (!$route) {
             throw RouterException::namedRouteNotFound($name);
         }
 
+        /** @var array<string, mixed> $parameters */
         return $this->normalizeUri($route->generateUrl($parameters));
     }
 
@@ -205,14 +235,14 @@ class Router implements RouterInterface
 
     /**
      * Dispatch the route and execute the appropriate handler
-     * 
+     *
      * @throws RouterException
      */
     public function dispatch(string $uri, string $method = 'GET'): mixed
     {
         $uri = $this->normalizeUri($uri);
         $route = $this->findRoute($uri, $method);
-        
+
         if ($route === null) {
             throw RouterException::routeNotFound($method, $uri);
         }
@@ -226,9 +256,12 @@ class Router implements RouterInterface
     protected function findRoute(string $uri, string $method): ?Route
     {
         foreach ($this->routes->getRoutesByMethod($method) as $route) {
-            $pattern = $this->compiler->compile($route->getUri(), $route->getWheres());
-            
+            /** @var array<string, string> $wheres */
+            $wheres = $route->getWheres();
+            $pattern = $this->compiler->compile($route->getUri(), $wheres);
+
             if (preg_match($pattern, $uri, $matches)) {
+                /** @var array<string, string> $matches */
                 $parameters = $this->compiler->extractParameters($route->getUri(), $matches);
                 $route->setParameters($parameters);
                 return $route;

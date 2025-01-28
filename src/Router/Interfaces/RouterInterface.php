@@ -11,7 +11,7 @@ interface RouterInterface
 {
     /**
      * Add a GET route
-     * 
+     *
      * @param string $uri The route URI
      * @param callable|string $handler The route handler (callable or invokable class name)
      * @return Route
@@ -20,7 +20,7 @@ interface RouterInterface
 
     /**
      * Add a POST route
-     * 
+     *
      * @param string $uri The route URI
      * @param callable|string $handler The route handler (callable or invokable class name)
      * @return Route
@@ -29,7 +29,7 @@ interface RouterInterface
 
     /**
      * Add a PUT route
-     * 
+     *
      * @param string $uri The route URI
      * @param callable|string $handler The route handler (callable or invokable class name)
      * @return Route
@@ -38,7 +38,7 @@ interface RouterInterface
 
     /**
      * Add a DELETE route
-     * 
+     *
      * @param string $uri The route URI
      * @param callable|string $handler The route handler (callable or invokable class name)
      * @return Route
@@ -47,17 +47,17 @@ interface RouterInterface
 
     /**
      * Add a route that responds to multiple HTTP methods
-     * 
-     * @param array $methods HTTP methods
+     *
+     * @param array<string> $methods HTTP methods
      * @param string $uri The route URI
-     * @param callable|string $handler The route handler (callable or invokable class name)
+     * @param callable|string|array<string, mixed> $handler The route handler (callable or invokable class name)
      * @return Route
      */
-    public function match(array $methods, string $uri, callable|string $handler): Route;
+    public function match(array $methods, string $uri, callable|string|array $handler): Route;
 
     /**
      * Dispatch the route and execute the appropriate handler
-     * 
+     *
      * @param string $uri The URI to dispatch
      * @param string $method The HTTP method
      * @return mixed
