@@ -1,12 +1,72 @@
 {
-    "name": "millerphp/framework",
+    "name": "millerphp/excalibur",
     "type": "library",
     "license": "MIT",
+    "keywords": [
+        "framework",
+        "millerphp",
+        "excalibur",
+        "php",
+        "php8.4"
+    ],
+    "support": {
+        "issues": "https://github.com/millerphp/framework/issues",
+        "source": "https://github.com/millerphp/framework",
+        "wiki": "https://github.com/millerphp/framework/wiki"
+    },
     "authors": [
         {
             "name": "Christopher Miller",
-            "email": "christophercarlmiller@outlook.com"
+            "email": "christophercarlmiller@outlook.com",
+            "role": "Developer"
         }
     ],
-    "require": {}
+    "autoload": {
+        "psr-4": {
+            "Excalibur\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^8.4",
+        "ext-mbstring": "*",
+        "ext-iconv": "*",
+        "ext-json": "*",
+        "ext-pdo": "*",
+        "ext-curl": "*",
+        "ext-xml": "*",
+        "ext-openssl": "*",
+        "ext-zip": "*",
+        "ext-zlib": "*",
+        "ext-fileinfo": "*",
+        "ext-session": "*"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.7",
+        "pestphp/pest-plugin-arch": "^3.0",
+        "pestphp/pest-plugin-drift": "^3.0"
+        
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "scripts": {
+        "test": [
+            "@putenv XDEBUG_MODE=coverage",
+            "pest --colors=always --testdox"
+        ],
+        "test:coverage": [
+            "@putenv XDEBUG_MODE=coverage",
+            "pest --coverage --colors=always --testdox"
+        ],
+        "test:watch": [
+            "pest --watch --colors=always --testdox"
+        ]
+    }
 }
