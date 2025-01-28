@@ -93,6 +93,42 @@ class Route
     }
 
     /**
+     * Create a new PATCH route
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
+     */
+    public static function patch(string $uri, mixed $handler): self
+    {
+        return new self('PATCH', $uri, $handler);
+    }
+
+    /**
+     * Create a new HEAD route
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
+     */
+    public static function head(string $uri, mixed $handler): self
+    {
+        return new self('HEAD', $uri, $handler);
+    }
+
+    /**
+     * Create a new OPTIONS route
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
+     */
+    public static function options(string $uri, mixed $handler): self
+    {
+        return new self('OPTIONS', $uri, $handler);
+    }
+
+    /**
+     * Create a new TRACE route
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
+     */
+    public static function trace(string $uri, mixed $handler): self
+    {
+        return new self('TRACE', $uri, $handler);
+    }
+
+    /**
      * Create a route matching multiple methods
      * @param array<string> $methods
      * @param callable|string|array{0: class-string, 1: string} $handler

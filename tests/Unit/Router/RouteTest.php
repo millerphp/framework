@@ -107,4 +107,52 @@ describe('Route', function () {
         expect($route->generateUrl(['id' => 123, 'post' => 456]))
             ->toBe('/users/123/posts/456');
     });
+
+    it('creates PATCH routes', function () {
+        $route = Route::patch('/users/1', fn () => 'update user');
+
+        expect($route)
+            ->toBeInstanceOf(Route::class)
+            ->getMethods()->toBe(['PATCH']);
+    });
+
+    it('creates HEAD routes', function () {
+        $route = Route::head('/users', fn () => 'head request');
+
+        expect($route)
+            ->toBeInstanceOf(Route::class)
+            ->getMethods()->toBe(['HEAD']);
+    });
+
+    it('creates OPTIONS routes', function () {
+        $route = Route::options('/users', fn () => 'options request');
+
+        expect($route)
+            ->toBeInstanceOf(Route::class)
+            ->getMethods()->toBe(['OPTIONS']);
+    });
+
+    it('creates TRACE routes', function () {
+        $route = Route::trace('/users', fn () => 'trace request');
+
+        expect($route)
+            ->toBeInstanceOf(Route::class)
+            ->getMethods()->toBe(['TRACE']);
+    });
+
+    it('matches different HTTP methods correctly', function () {
+        $patchRoute = Route::patch('/users/1', fn () => 'update');
+        $headRoute = Route::head('/users', fn () => 'head');
+        $optionsRoute = Route::options('/users', fn () => 'options');
+        $traceRoute = Route::trace('/users', fn () => 'trace');
+
+        expect($patchRoute->matches('/users/1', 'PATCH'))->toBeTrue()
+            ->and($patchRoute->matches('/users/1', 'POST'))->toBeFalse()
+            ->and($headRoute->matches('/users', 'HEAD'))->toBeTrue()
+            ->and($headRoute->matches('/users', 'GET'))->toBeFalse()
+            ->and($optionsRoute->matches('/users', 'OPTIONS'))->toBeTrue()
+            ->and($optionsRoute->matches('/users', 'GET'))->toBeFalse()
+            ->and($traceRoute->matches('/users', 'TRACE'))->toBeTrue()
+            ->and($traceRoute->matches('/users', 'GET'))->toBeFalse();
+    });
 });
