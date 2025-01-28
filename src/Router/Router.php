@@ -27,40 +27,46 @@ class Router implements RouterInterface
 
     /**
      * Add a GET route
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
      */
-    public function get(string $uri, callable|string|array $handler): Route
+    public function get(string $uri, mixed $handler): Route
     {
         return $this->addRoute(['GET'], $uri, $handler);
     }
 
     /**
      * Add a POST route
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
      */
-    public function post(string $uri, callable|string|array $handler): Route
+    public function post(string $uri, mixed $handler): Route
     {
         return $this->addRoute(['POST'], $uri, $handler);
     }
 
     /**
      * Add a PUT route
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
      */
-    public function put(string $uri, callable|string|array $handler): Route
+    public function put(string $uri, mixed $handler): Route
     {
         return $this->addRoute(['PUT'], $uri, $handler);
     }
 
     /**
      * Add a DELETE route
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
      */
-    public function delete(string $uri, callable|string|array $handler): Route
+    public function delete(string $uri, mixed $handler): Route
     {
         return $this->addRoute(['DELETE'], $uri, $handler);
     }
 
     /**
      * Add a route that responds to multiple HTTP methods
+     * @param array<string> $methods
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
      */
-    public function match(array $methods, string $uri, callable|string|array $handler): Route
+    public function match(array $methods, string $uri, mixed $handler): Route
     {
         return $this->addRoute($methods, $uri, $handler);
     }
@@ -68,9 +74,9 @@ class Router implements RouterInterface
     /**
      * Add a route to the routing table
      * @param array<string> $methods
-     * @param callable|string|array<string, mixed> $handler
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
      */
-    protected function addRoute(array $methods, string $uri, callable|string|array $handler): Route
+    protected function addRoute(array $methods, string $uri, mixed $handler): Route
     {
         $uri = $this->normalizeUri($uri);
         $route = new Route($methods, $uri, $handler);
@@ -100,10 +106,10 @@ class Router implements RouterInterface
 
     /**
      * Process the handler with current group stack
-     * @param callable|string|array<string, mixed> $handler
-     * @return callable|string|array<string, mixed>
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
+     * @return (callable(): mixed)|array{0: class-string, 1: string}|string
      */
-    protected function processHandler(callable|string|array $handler): callable|string|array
+    protected function processHandler(mixed $handler): mixed
     {
         if (!is_string($handler)) {
             return $handler;

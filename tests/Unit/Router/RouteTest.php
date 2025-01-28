@@ -78,11 +78,27 @@ describe('Route', function () {
         expect($route->execute())->toBe('controller result');
     });
 
-    it('throws exception for non-existent controller', function () {
-        $route = Route::get('/test', 'NonExistentController@index');
+    it('handles array controller handlers', function () {
+        $route = Route::get('/test', [TestController::class, 'index']);
+        $route->matches('/test', 'GET');
+
+        expect($route->execute())->toBe('controller result');
+    });
+
+    it('throws exception for invalid array handler format', function () {
+        $route = Route::get('/test', ['invalid']);
+        $route->matches('/test', 'GET');
 
         expect(fn () => $route->execute())
-            ->toThrow(RouterException::class, 'Controller class NonExistentController not found');
+            ->toThrow(RouterException::class, 'Invalid controller array format. Expected [Controller::class, "method"]');
+    });
+
+    it('throws exception for non-existent controller method', function () {
+        $route = Route::get('/test', [TestController::class, 'nonExistentMethod']);
+        $route->matches('/test', 'GET');
+
+        expect(fn () => $route->execute())
+            ->toThrow(RouterException::class, 'Method nonExistentMethod not found on controller ' . TestController::class);
     });
 
     it('generates URLs with parameters', function () {

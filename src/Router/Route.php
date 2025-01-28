@@ -46,7 +46,7 @@ class Route
      *
      * @param array<string>|string $methods HTTP methods this route responds to
      * @param string $uri The URI pattern for this route
-     * @param callable|string|array<string, mixed> $handler The route handler
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler The route handler
      */
     public function __construct(
         array|string $methods,
@@ -58,54 +58,48 @@ class Route
 
     /**
      * Create a new GET route
-     * @param callable|string|array<string, mixed> $handler
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
      */
-    public static function get(string $uri, callable|string|array $handler): self
+    public static function get(string $uri, mixed $handler): self
     {
-        /** @var array<string, mixed>|callable|string $handler */
         return new self('GET', $uri, $handler);
     }
 
     /**
      * Create a new POST route
-     * @param callable|string|array<string, mixed> $handler
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
      */
-    public static function post(string $uri, callable|string|array $handler): self
+    public static function post(string $uri, mixed $handler): self
     {
-        /** @var array<string, mixed>|callable|string $handler */
         return new self('POST', $uri, $handler);
     }
 
     /**
      * Create a new PUT route
-     * @param callable|string|array<string, mixed> $handler
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
      */
-    public static function put(string $uri, callable|string|array $handler): self
+    public static function put(string $uri, mixed $handler): self
     {
-        /** @var array<string, mixed>|callable|string $handler */
         return new self('PUT', $uri, $handler);
     }
 
     /**
      * Create a new DELETE route
-     * @param callable|string|array<string, mixed> $handler
+     * @param (callable(): mixed)|array{0: class-string, 1: string}|string $handler
      */
-    public static function delete(string $uri, callable|string|array $handler): self
+    public static function delete(string $uri, mixed $handler): self
     {
-        /** @var array<string, mixed>|callable|string $handler */
         return new self('DELETE', $uri, $handler);
     }
 
     /**
      * Create a route matching multiple methods
      * @param array<string> $methods
-     * @param callable|string|array<string, mixed> $handler
+     * @param callable|string|array{0: class-string, 1: string} $handler
      */
     public static function match(array $methods, string $uri, callable|string|array $handler): self
     {
-        /** @var array<string, mixed>|callable|string $handler */
-        /** @var array<string> $methods */
-        return new self($methods[0], $uri, $handler);
+        return new self($methods, $uri, $handler);
     }
 
     /**
@@ -152,9 +146,9 @@ class Route
 
     /**
      * Get the route's handler
-     * @return callable|string|array<string, mixed>
+     * @return (callable(): mixed)|array{0: class-string, 1: string}|string
      */
-    public function getHandler(): callable|string|array
+    public function getHandler(): mixed
     {
         return $this->handler;
     }
@@ -285,7 +279,43 @@ class Route
             return call_user_func_array($this->handler, $this->parameters);
         }
 
-        if (is_string($this->handler) && str_contains($this->handler, '@')) {
+        if (is_array($this->handler)) {
+            /** @var mixed[] $handler */
+            $handler = $this->handler;
+
+            if (count($handler) !== 2) {
+                throw new RouterException('Invalid controller array format. Expected [Controller::class, "method"]');
+            }
+
+            /** @var mixed $controller */
+            $controller = $handler[0];
+            /** @var mixed $method */
+            $method = $handler[1];
+
+            if (!is_string($controller) || !is_string($method)) {
+                throw new RouterException('Invalid controller array format. Expected [Controller::class, "method"]');
+            }
+
+            if (!class_exists($controller)) {
+                throw RouterException::controllerNotFound($controller);
+            }
+
+            $instance = new $controller();
+            if (!method_exists($instance, $method)) {
+                throw new RouterException(
+                    sprintf('Method %s not found on controller %s', $method, $controller)
+                );
+            }
+
+            return $instance->$method(...$this->parameters);
+        }
+
+        if (!is_string($this->handler)) {
+            throw new RouterException('Invalid route handler');
+        }
+
+        // Handle "Controller@method" string format
+        if (str_contains($this->handler, '@')) {
             [$controller, $method] = explode('@', $this->handler);
             if (!class_exists($controller)) {
                 throw RouterException::controllerNotFound($controller);
@@ -294,18 +324,15 @@ class Route
             return $instance->$method(...$this->parameters);
         }
 
-        if (is_string($this->handler)) {
-            if (!class_exists($this->handler)) {
-                throw RouterException::controllerNotFound($this->handler);
-            }
-            $instance = new $this->handler();
-            if (!is_callable($instance)) {
-                throw RouterException::invalidController($this->handler);
-            }
-            return $instance(...$this->parameters);
+        // Handle invokable controller class
+        if (!class_exists($this->handler)) {
+            throw RouterException::controllerNotFound($this->handler);
         }
-
-        throw new RouterException('Invalid route handler');
+        $instance = new $this->handler();
+        if (!is_callable($instance)) {
+            throw RouterException::invalidController($this->handler);
+        }
+        return $instance(...$this->parameters);
     }
 
     /**
