@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Excalibur\Router\Exception;
 
-use Exception;
+use Excalibur\Exceptions\ExcaliburException;
 
-class RouterException extends Exception
+class RouterException extends ExcaliburException
 {
     public static function routeNotFound(string $method, string $uri): self
     {
