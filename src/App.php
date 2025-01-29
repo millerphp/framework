@@ -10,6 +10,7 @@ use Excalibur\Container\Container;
 use Excalibur\HTTP\Facades\Facade;
 use Excalibur\Providers\RequestServiceProvider;
 use Excalibur\Providers\RouterServiceProvider;
+use Excalibur\Providers\ResponseServiceProvider;
 
 class App
 {
@@ -39,6 +40,7 @@ class App
     {
         $providers = [
             RequestServiceProvider::class,
+            ResponseServiceProvider::class,
             RouterServiceProvider::class,
             // Add other providers here
         ];

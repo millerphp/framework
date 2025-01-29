@@ -8,6 +8,7 @@ use Excalibur\App;
 use Excalibur\HTTP\Request;
 use Excalibur\Router\Facades\Route;
 use Excalibur\HTTP\Facades\Request as RequestFacade;
+use Excalibur\HTTP\Facades\Response;
 
 class Application
 {
@@ -84,13 +85,13 @@ class Application
 
     protected function sendResponse(mixed $response): void
     {
-        if (is_string($response) || is_numeric($response)) {
-            echo $response;
+        if ($response instanceof \Excalibur\HTTP\Response) {
+            $response->send();
+        } elseif (is_string($response) || is_numeric($response)) {
+            Response::make($response)->send();
         } elseif (is_array($response)) {
-            header('Content-Type: application/json');
-            echo json_encode($response);
+            Response::json($response)->send();
         }
-        // Add more response type handling as needed
     }
 
     protected function handleException(\Exception $e): void
