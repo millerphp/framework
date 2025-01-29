@@ -313,11 +313,53 @@ class Route
     public function execute(Request $request): mixed
     {
         if (is_callable($this->handler)) {
-            // Only pass the route parameters, not the request
-            $parameters = array_values($this->parameters);
-            return call_user_func_array($this->handler, $parameters);
+            return call_user_func($this->handler);
         }
 
+        $controller = $this->resolveController();
+        $method = $this->resolveMethod();
+        
+        // Get the method's parameters
+        $reflection = new \ReflectionMethod($controller, $method);
+        $parameters = $reflection->getParameters();
+        
+        // Build the parameters array
+        $args = [];
+        foreach ($parameters as $parameter) {
+            if ($parameter->getType() && $parameter->getType()->getName() === 'Excalibur\HTTP\Request') {
+                // Inject the Request object
+                $args[] = $request;
+            } else {
+                // Get route parameter value
+                $paramName = $parameter->getName();
+                $args[] = $this->parameters[$paramName] ?? null;
+            }
+        }
+
+        return $controller->$method(...$args);
+    }
+
+    /**
+     * @param array<string, mixed> $parameters
+     */
+    public function generateUrl(array $parameters = []): string
+    {
+        $uri = $this->uri;
+
+        foreach ($parameters as $key => $value) {
+            $pattern = "/\{" . preg_quote((string)$key, '/') . "\??}/";
+            $replacement = is_scalar($value) ? (string)$value : '';
+            $uri = (string)preg_replace($pattern, $replacement, $uri);
+        }
+
+        // Remove any remaining optional parameters
+        $uri = (string)preg_replace('/\{[^}]+\?}/', '', $uri);
+
+        return $uri;
+    }
+
+    private function resolveController()
+    {
         if (is_array($this->handler)) {
             /** @var mixed[] $handler */
             $handler = $this->handler;
@@ -339,14 +381,7 @@ class Route
                 throw RouterException::controllerNotFound($controller);
             }
 
-            $instance = new $controller();
-            if (!method_exists($instance, $method)) {
-                throw new RouterException(
-                    sprintf('Method %s not found on controller %s', $method, $controller)
-                );
-            }
-
-            return $instance->$method(...array_values($this->parameters));
+            return new $controller();
         }
 
         // Handle "Controller@method" string format
@@ -355,8 +390,7 @@ class Route
             if (!class_exists($controller)) {
                 throw RouterException::controllerNotFound($controller);
             }
-            $instance = new $controller();
-            return $instance->$method(...$this->parameters);
+            return new $controller();
         }
 
         // Handle invokable controller class
@@ -367,25 +401,31 @@ class Route
         if (!is_callable($instance)) {
             throw RouterException::invalidController($this->handler);
         }
-        return $instance(...$this->parameters);
+        return $instance;
     }
 
-    /**
-     * @param array<string, mixed> $parameters
-     */
-    public function generateUrl(array $parameters = []): string
+    private function resolveMethod()
     {
-        $uri = $this->uri;
-
-        foreach ($parameters as $key => $value) {
-            $pattern = "/\{" . preg_quote((string)$key, '/') . "\??}/";
-            $replacement = is_scalar($value) ? (string)$value : '';
-            $uri = (string)preg_replace($pattern, $replacement, $uri);
+        if (is_array($this->handler)) {
+            /** @var mixed[] $handler */
+            $handler = $this->handler;
+            return $handler[1];
         }
 
-        // Remove any remaining optional parameters
-        $uri = (string)preg_replace('/\{[^}]+\?}/', '', $uri);
+        // Handle "Controller@method" string format
+        if (str_contains($this->handler, '@')) {
+            [$controller, $method] = explode('@', $this->handler);
+            return $method;
+        }
 
-        return $uri;
+        // Handle invokable controller class
+        if (!class_exists($this->handler)) {
+            throw RouterException::controllerNotFound($this->handler);
+        }
+        $instance = new $this->handler();
+        if (!is_callable($instance)) {
+            throw RouterException::invalidController($this->handler);
+        }
+        return (new \ReflectionClass($instance))->getMethod('__invoke')->getName();
     }
 }

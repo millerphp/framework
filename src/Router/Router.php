@@ -182,25 +182,14 @@ class Router implements RouterInterface
      * @param array<string, mixed> $parameters
      * @throws RouterException
      */
-    protected function executeHandler(callable|string $handler, array $parameters): mixed
+    protected function executeRoute($route, array $parameters = [])
     {
-        if (is_callable($handler)) {
-            return $handler(...array_values($parameters));
+        if (is_array($route)) {
+            [$controller, $method] = $route;
+            return app()->callAction($controller, $method, $parameters);
         }
 
-        if (!class_exists($handler)) {
-            throw new RouterException("Controller class {$handler} not found");
-        }
-
-        $controller = new $handler();
-
-        if (!is_callable($controller)) {
-            throw new RouterException(
-                "Controller class {$handler} must be invokable (implement __invoke method)"
-            );
-        }
-
-        return $controller(...array_values($parameters));
+        return app()->getContainer()->call($route, $parameters);
     }
 
     /**

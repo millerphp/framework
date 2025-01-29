@@ -13,9 +13,38 @@ class Request
      */
     protected array $data;
 
-    public function __construct(array $data = [])
-    {
-        $this->data = $data;
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $query;
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $server;
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $cookies;
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $files;
+
+    public function __construct(
+        array $query = [],
+        array $request = [],
+        array $server = [],
+        array $cookies = [],
+        array $files = []
+    ) {
+        $this->query = $query;
+        $this->data = array_merge($query, $request);
+        $this->server = $server;
+        $this->cookies = $cookies;
+        $this->files = $files;
     }
 
     /**
@@ -47,7 +76,7 @@ class Request
      */
     public function method(): string
     {
-        return $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        return $this->server['REQUEST_METHOD'] ?? 'GET';
     }
 
     /**
@@ -55,7 +84,7 @@ class Request
      */
     public function uri(): string
     {
-        return $_SERVER['REQUEST_URI'] ?? '';
+        return $this->server['REQUEST_URI'] ?? '';
     }
 
     /**
@@ -64,6 +93,17 @@ class Request
     public function header(string $key, mixed $default = null): mixed
     {
         $key = strtoupper(str_replace('-', '_', $key));
-        return $_SERVER['HTTP_' . $key] ?? $default;
+        return $this->server['HTTP_' . $key] ?? $default;
+    }
+
+    public static function capture(): self
+    {
+        return new self(
+            $_GET,
+            $_POST,
+            $_SERVER,
+            $_COOKIE,
+            $_FILES
+        );
     }
 } 
