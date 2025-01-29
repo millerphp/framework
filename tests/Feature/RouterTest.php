@@ -8,26 +8,30 @@ use Tests\Fixtures\Controllers\TestController;
 use Excalibur\Router\Router;
 use Excalibur\Router\Exception\RouterException;
 use Excalibur\Router\Route;
+use Excalibur\HTTP\Request;
 
 describe('Router', function () {
     it('handles basic routing', function () {
         $router = new Router();
         $router->get('/test', fn () => 'test result');
 
-        expect($router->dispatch('/test', 'GET'))->toBe('test result');
+        $request = new Request();
+        expect($router->dispatch('/test', $request, 'GET'))->toBe('test result');
     });
 
     it('handles route parameters', function () {
         $router = new Router();
         $router->get('/users/{id}', fn ($id) => "User $id");
 
-        expect($router->dispatch('/users/123', 'GET'))->toBe('User 123');
+        $request = new Request();
+        expect($router->dispatch('/users/123', $request, 'GET'))->toBe('User 123');
     });
 
     it('throws 404 for non-existent routes', function () {
         $router = new Router();
 
-        expect(fn () => $router->dispatch('/non-existent', 'GET'))
+        $request = new Request();
+        expect(fn () => $router->dispatch('/non-existent', $request, 'GET'))
             ->toThrow(RouterException::class, 'No route found for GET /non-existent');
     });
 
@@ -37,8 +41,9 @@ describe('Router', function () {
         $router->get('/test', fn () => 'GET');
         $router->post('/test', fn () => 'POST');
 
-        expect($router->dispatch('/test', 'GET'))->toBe('GET')
-            ->and($router->dispatch('/test', 'POST'))->toBe('POST');
+        $request = new Request();
+        expect($router->dispatch('/test', $request, 'GET'))->toBe('GET')
+            ->and($router->dispatch('/test', $request, 'POST'))->toBe('POST');
     });
 
     it('generates URLs for named routes', function () {
@@ -63,10 +68,11 @@ describe('Router', function () {
             ->where('id', '[0-9]+');
 
         // Test valid numeric ID
-        expect($router->dispatch('/users/123', 'GET'))->toBe('123');
+        $request = new Request();
+        expect($router->dispatch('/users/123', $request, 'GET'))->toBe('123');
 
         // Test invalid non-numeric ID - should throw exception
-        expect(fn () => $router->dispatch('/users/abc', 'GET'))
+        expect(fn () => $router->dispatch('/users/abc', $request, 'GET'))
             ->toThrow(RouterException::class, 'No route found for GET /users/abc');
     });
 
@@ -74,7 +80,8 @@ describe('Router', function () {
         $router = new Router();
         $router->get('/test', TestController::class);
 
-        expect($router->dispatch('/test', 'GET'))
+        $request = new Request();
+        expect($router->dispatch('/test', $request, 'GET'))
             ->toBe('invoked controller');
     });
 });

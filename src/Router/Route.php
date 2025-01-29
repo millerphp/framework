@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Excalibur\Router;
 
 use Excalibur\Router\Exception\RouterException;
+use Excalibur\HTTP\Request;
 
 class Route
 {
@@ -309,10 +310,12 @@ class Route
      * Execute the route handler with parameters
      * @throws RouterException
      */
-    public function execute(): mixed
+    public function execute(Request $request): mixed
     {
         if (is_callable($this->handler)) {
-            return call_user_func_array($this->handler, $this->parameters);
+            // Only pass the route parameters, not the request
+            $parameters = array_values($this->parameters);
+            return call_user_func_array($this->handler, $parameters);
         }
 
         if (is_array($this->handler)) {
@@ -343,11 +346,7 @@ class Route
                 );
             }
 
-            return $instance->$method(...$this->parameters);
-        }
-
-        if (!is_string($this->handler)) {
-            throw new RouterException('Invalid route handler');
+            return $instance->$method(...array_values($this->parameters));
         }
 
         // Handle "Controller@method" string format

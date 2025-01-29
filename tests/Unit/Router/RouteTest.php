@@ -7,6 +7,7 @@ namespace Tests\Unit\Router;
 use Tests\Fixtures\Controllers\TestController;
 use Excalibur\Router\Route;
 use Excalibur\Router\Exception\RouterException;
+use Excalibur\HTTP\Request;
 
 describe('Route', function () {
     beforeEach(function () {
@@ -69,27 +70,31 @@ describe('Route', function () {
     it('executes callable handlers', function () {
         $route = Route::get('/test', fn () => 'result');
 
-        expect($route->execute())->toBe('result');
+        $request = new Request();
+        expect($route->execute($request))->toBe('result');
     });
 
     it('executes controller method handlers', function () {
         $route = Route::get('/test', TestController::class . '@index');
 
-        expect($route->execute())->toBe('controller result');
+        $request = new Request();
+        expect($route->execute($request))->toBe('controller result');
     });
 
     it('handles array controller handlers', function () {
         $route = Route::get('/test', [TestController::class, 'index']);
         $route->matches('/test', 'GET');
 
-        expect($route->execute())->toBe('controller result');
+        $request = new Request();
+        expect($route->execute($request))->toBe('controller result');
     });
 
     it('throws exception for invalid array handler format', function () {
         $route = Route::get('/test', ['invalid']);
         $route->matches('/test', 'GET');
 
-        expect(fn () => $route->execute())
+        $request = new Request();
+        expect(fn () => $route->execute($request))
             ->toThrow(RouterException::class, 'Invalid controller array format. Expected [Controller::class, "method"]');
     });
 
@@ -97,7 +102,8 @@ describe('Route', function () {
         $route = Route::get('/test', [TestController::class, 'nonExistentMethod']);
         $route->matches('/test', 'GET');
 
-        expect(fn () => $route->execute())
+        $request = new Request();
+        expect(fn () => $route->execute($request))
             ->toThrow(RouterException::class, 'Method nonExistentMethod not found on controller ' . TestController::class);
     });
 

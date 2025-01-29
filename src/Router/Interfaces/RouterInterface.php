@@ -6,6 +6,7 @@ namespace Excalibur\Router\Interfaces;
 
 use Excalibur\Router\Exception\RouterException;
 use Excalibur\Router\Route;
+use Excalibur\HTTP\Request;
 
 interface RouterInterface
 {
@@ -59,9 +60,10 @@ interface RouterInterface
      * Dispatch the route and execute the appropriate handler
      *
      * @param string $uri The URI to dispatch
+     * @param Request $request The HTTP request object
      * @param string $method The HTTP method
      * @return mixed
      * @throws RouterException
      */
-    public function dispatch(string $uri, string $method = 'GET'): mixed;
+    public function dispatch(string $uri, Request $request, string $method = 'GET'): mixed;
 }

@@ -7,6 +7,7 @@ namespace Excalibur\Router;
 use Excalibur\Router\Exception\RouterException;
 use Excalibur\Router\Interfaces\RouterInterface;
 use Excalibur\Router\Facades\Route as RouteFacade;
+use Excalibur\HTTP\Request;
 
 class Router implements RouterInterface
 {
@@ -244,7 +245,7 @@ class Router implements RouterInterface
      *
      * @throws RouterException
      */
-    public function dispatch(string $uri, string $method = 'GET'): mixed
+    public function dispatch(string $uri, Request $request, string $method = 'GET'): mixed
     {
         $uri = $this->normalizeUri($uri);
         $route = $this->findRoute($uri, $method);
@@ -253,7 +254,7 @@ class Router implements RouterInterface
             throw RouterException::routeNotFound($method, $uri);
         }
 
-        return $route->execute();
+        return $route->execute($request);
     }
 
     /**
